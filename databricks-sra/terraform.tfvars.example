@@ -1,0 +1,59 @@
+# Customized copy of template.tfvars.example for this project's chosen path:
+# HYBRID compute mode + "custom" networking (VPC/PrivateLink provisioned by
+# ../network, not by SRA's built-in "isolated" mode). See the top-level
+# README.md for the full two-step apply flow.
+
+# -----------------------------------------------------------------------------
+# Required Variables (all compute modes)
+# -----------------------------------------------------------------------------
+
+admin_user             = "you@example.com"
+compute_mode           = "HYBRID"
+databricks_account_id  = ""
+databricks_gov_shard   = null
+deployment_name        = null
+region                 = "us-west-2"
+resource_prefix        = "dbx-trial"
+
+# -----------------------------------------------------------------------------
+# Hybrid Compute Mode
+# -----------------------------------------------------------------------------
+
+aws_account_id         = ""
+network_configuration  = "custom"
+
+# Fill these in from `terraform output` in ../network after applying it:
+custom_vpc_id                 = ""
+custom_private_subnet_ids     = ["", ""]
+custom_sg_id                  = ""
+custom_general_access_vpce_id = ""
+custom_scc_relay_vpce_id      = ""
+
+create_service_direct_vpce = false
+
+# -----------------------------------------------------------------------------
+# Feature Flags
+# -----------------------------------------------------------------------------
+
+# First run in this Databricks account: set to false so SRA configures audit
+# log delivery. Audit log delivery can only be configured twice per account —
+# once it succeeds, switch this back to true for subsequent applies.
+audit_log_delivery_exists = false
+
+disable_legacy_features_at_account_level = false
+enable_automatic_cluster_update          = false
+enable_compliance_security_profile       = false
+enable_enhanced_security_monitoring      = false
+enable_security_analysis_tool            = false
+
+# Set to false the first time, unless you already have a Unity Catalog
+# metastore in this region you want this workspace to join.
+metastore_exists = false
+
+# -----------------------------------------------------------------------------
+# Optional Configuration
+# -----------------------------------------------------------------------------
+
+context_based_ingress_ip_acl                  = []
+cross_workspace_ingress_allowed_workspace_ids = []
+serverless_private_endpoint_rules             = []

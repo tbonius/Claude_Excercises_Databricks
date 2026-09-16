@@ -1,0 +1,9 @@
+region          = "us-west-2"
+resource_prefix = "dbx-trial"
+vpc_cidr        = "10.10.0.0/16"
+
+# Look these two up in ../databricks-sra/variables.tf for your region:
+#   general_access_config[region].primary_endpoint
+#   scc_relay_config[region].primary_endpoint
+general_access_service_name = "com.amazonaws.vpce.us-west-2.vpce-svc-0129f463fcfbc46c5"
+scc_relay_service_name      = "com.amazonaws.vpce.us-west-2.vpce-svc-0158114c0c730c3bb"

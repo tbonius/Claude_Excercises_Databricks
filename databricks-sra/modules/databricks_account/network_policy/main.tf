@@ -1,0 +1,85 @@
+# Terraform Documentation: https://registry.terraform.io/providers/databricks/databricks/latest/docs/resources/account_network_policy
+# Terraform Documentation: https://registry.terraform.io/providers/databricks/databricks/latest/docs/resources/workspace_network_option
+
+# NOTE: If this resource fails, verify that network_policy_id is no more than 32 characters.
+# If using the Security Analysis Tool, please allow list PyPI.org to ensure functionality.
+
+resource "databricks_account_network_policy" "restrictive_network_policy" {
+  account_id        = var.databricks_account_id
+  network_policy_id = "${var.resource_prefix}-np" # Must not be more than 32 characters.
+
+  egress = {
+    network_access = {
+      restriction_mode = "RESTRICTED_ACCESS"
+      policy_enforcement = {
+        enforcement_mode = "ENFORCED"
+      }
+      # When the Security Analysis Tool is enabled, allow list PyPI so SAT can install its dependencies.
+      allowed_internet_destinations = var.enable_security_analysis_tool ? [
+        {
+          destination               = "pypi.org"
+          internet_destination_type = "DNS_NAME"
+        },
+        {
+          destination               = "files.pythonhosted.org"
+          internet_destination_type = "DNS_NAME"
+        },
+        {
+          destination               = "release-assets.githubusercontent.com"
+          internet_destination_type = "DNS_NAME"
+        },
+        {
+          destination               = "github.com"
+          internet_destination_type = "DNS_NAME"
+        },
+        {
+          destination               = "raw.githubusercontent.com"
+          internet_destination_type = "DNS_NAME"
+        }
+      ] : []
+    }
+  }
+
+  ingress = {
+    # Cross-workspace access is now required on the account network policy. Default to RESTRICTED_ACCESS so no
+    # other workspaces can reach this one. When cross_workspace_ingress_allowed_workspace_ids is non-empty, those
+    # source workspaces are allow-listed; otherwise no cross-workspace ingress is permitted.
+    # NOTE: Not yet supported in GovCloud (like private_access above), so leave it unset in us-gov-west-1.
+    cross_workspace_access = var.region == "us-gov-west-1" ? null : {
+      restriction_mode = "RESTRICTED_ACCESS"
+      allow_rules = length(var.cross_workspace_ingress_allowed_workspace_ids) > 0 ? [
+        {
+          label = "${var.resource_prefix}-xws-allow"
+          origin = {
+            selected_workspaces = {
+              workspace_ids = var.cross_workspace_ingress_allowed_workspace_ids
+            }
+          }
+        }
+      ] : []
+    }
+    # Explicitly allow private access from all VPC endpoints registered in the account, matching the
+    # private access settings posture (private_access_level = "ACCOUNT"). The API now populates
+    # private_access server-side when unset, which the provider reports as an inconsistent result after
+    # apply ("was null, but now ..."); setting it explicitly avoids that error.
+    private_access = var.region == "us-gov-west-1" ? null : {
+      restriction_mode = "ALLOW_ALL_REGISTERED_ENDPOINTS"
+    }
+    # Optional IP-based ingress restriction. When context_based_ingress_ip_acl is non-empty, public access
+    # to the workspace is restricted to the listed IPs/CIDRs; otherwise public access is left unrestricted.
+    # NOTE: Verify that all IPs are correct before enabling this feature to prevent a lockout scenario.
+    public_access = {
+      restriction_mode = length(var.context_based_ingress_ip_acl) > 0 ? "RESTRICTED_ACCESS" : "FULL_ACCESS"
+      allow_rules = length(var.context_based_ingress_ip_acl) > 0 ? [
+        {
+          label = "${var.resource_prefix}-ingress-allow"
+          origin = {
+            included_ip_ranges = {
+              ip_ranges = var.context_based_ingress_ip_acl
+            }
+          }
+        }
+      ] : []
+    }
+  }
+}
