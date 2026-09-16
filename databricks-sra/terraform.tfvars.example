@@ -46,6 +46,10 @@ enable_compliance_security_profile       = false
 enable_enhanced_security_monitoring      = false
 enable_security_analysis_tool            = false
 
+# Required even when enable_compliance_security_profile = false (no upstream
+# default). Only takes effect when that flag is true.
+compliance_standards = []
+
 # Set to false the first time, unless you already have a Unity Catalog
 # metastore in this region you want this workspace to join.
 metastore_exists = false
